@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1020">
+<title>매일 운동 체크</title>
+<style>
+  :root{
+    --bg:#0d1020; --card:#171b31; --card2:#1f2442; --line:#2b3157;
+    --text:#f3f5ff; --sub:#9aa2c7; --dim:#5d6590;
+    --run:#ff6b35; --stairs:#b6f23e; --dance:#ff4fa3; --walk:#3ed6f2;
+    --grad:linear-gradient(135deg,#ff6b35 0%,#ff4fa3 55%,#8b5cf6 100%);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+       min-height:100vh;padding:env(safe-area-inset-top) 0 40px}
+  .app{max-width:520px;margin:0 auto;padding:18px 16px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  header h1{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  header h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .streak{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);
+          padding:7px 12px;border-radius:999px;font-weight:700;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px}
+  .hero{background:var(--grad);border:none;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.12)}
+  .datenav{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
+  .navbtn{width:38px;height:38px;border-radius:12px;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:18px;cursor:pointer}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  .card .navbtn{background:var(--card2);color:var(--text)}
+  .datelabel{text-align:center}
+  .datelabel b{font-size:20px;display:block}
+  .datelabel small{font-size:12px;opacity:.85}
+  .ringwrap{display:flex;align-items:center;gap:16px;margin-top:16px;position:relative;z-index:1}
+  .ring{width:86px;height:86px;flex-shrink:0}
+  .ringtxt b{font-size:28px;font-weight:800}
+  .ringtxt p{font-size:13px;opacity:.9;margin-top:2px}
+  .items{display:grid;gap:10px}
+  .item{display:flex;align-items:center;gap:12px;background:var(--card2);border:2px solid transparent;border-radius:18px;padding:14px;
+        cursor:pointer;transition:transform .12s,border-color .2s,background .2s;user-select:none}
+  .item:active{transform:scale(.98)}
+  .item .ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;flex-shrink:0;background:rgba(255,255,255,.06)}
+  .item .meta{flex:1}
+  .item .meta b{font-size:16px}
+  .item .meta p{font-size:12px;color:var(--sub);margin-top:2px}
+  .check{width:30px;height:30px;border-radius:50%;border:2px solid var(--dim);display:grid;place-items:center;font-size:16px;color:transparent;transition:.2s}
+  .item.on .check{color:#0d1020;border-color:transparent}
+  .item[data-k=stairs].on{border-color:var(--stairs)} .item[data-k=stairs].on .check{background:var(--stairs)} .item[data-k=stairs] .ico{color:var(--stairs)}
+  .item[data-k=dance].on{border-color:var(--dance)}   .item[data-k=dance].on .check{background:var(--dance)}
+  .item[data-k=walk].on{border-color:var(--walk)}     .item[data-k=walk].on .check{background:var(--walk)}
+  .item.run{cursor:default}
+  .item.run.on{border-color:var(--run)}
+  .km{display:flex;align-items:center;gap:6px}
+  .km button{width:34px;height:34px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:var(--text);font-size:18px;cursor:pointer}
+  .km input{width:64px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--run);
+            font-size:18px;font-weight:800;text-align:center;outline:none}
+  .km input:focus{border-color:var(--run)}
+  .km span{font-size:13px;color:var(--sub)}
+  .sectitle{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .sectitle h2{font-size:17px;font-weight:800}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:var(--card2);border-radius:16px;padding:14px}
+  .stat p{font-size:12px;color:var(--sub)}
+  .stat b{font-size:24px;font-weight:800;display:block;margin-top:4px}
+  .stat b small{font-size:13px;color:var(--sub);font-weight:600;margin-left:2px}
+  .chartbox h3{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between}
+  .chartbox h3 span{font-size:12px;color:var(--sub);font-weight:500}
+  svg.chart{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:12px;color:var(--sub)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .rates{display:grid;gap:12px}
+  .rate .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .rate .top span{color:var(--sub)}
+  .bar{height:10px;border-radius:99px;background:var(--card2);overflow:hidden}
+  .bar div{height:100%;border-radius:99px;transition:width .5s}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cal .wd{font-size:11px;color:var(--dim);text-align:center;padding-bottom:2px}
+  .cal .wd:first-child{color:#ff7a8a}
+  .day{aspect-ratio:1;border-radius:12px;background:var(--card2);display:flex;flex-direction:column;align-items:center;justify-content:center;
+       gap:3px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid transparent;color:var(--sub)}
+  .day.future{opacity:.3;cursor:default}
+  .day.sel{border-color:#fff;color:#fff}
+  .day.today{color:#fff}
+  .day .dots{display:flex;gap:2px}
+  .day .dots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.12)}
+  .lv1{background:#2a2350}.lv2{background:#43307a}.lv3{background:#6a3aa8}.lv4{background:linear-gradient(135deg,#ff6b35,#ff4fa3)}
+  .lv4{color:#fff}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+  .tools button,.tools label{flex:1;min-width:120px;text-align:center;padding:12px;border-radius:14px;border:1px solid var(--line);
+       background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer}
+  .tools .danger{color:#ff7a8a}
+  .note{font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.5}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#fff;color:#0d1020;
+         padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+  .pop{animation:pop .3s}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>오늘도 <span>MOVE!</span></h1>
+    <div class="streak" id="streak">🔥 0일 연속</div>
+  </header>
+
+  <!-- 오늘 기록 -->
+  <section class="card hero">
+    <div class="datenav">
+      <button class="navbtn" id="prevDay" aria-label="이전 날">‹</button>
+      <div class="datelabel"><b id="dateMain"></b><small id="dateSub"></small></div>
+      <button class="navbtn" id="nextDay" aria-label="다음 날">›</button>
+    </div>
+    <div class="ringwrap">
+      <svg class="ring" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="10"/>
+        <circle id="ringFg" cx="50" cy="50" r="42" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"
+                stroke-dasharray="263.9" stroke-dashoffset="263.9" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .5s"/>
+      </svg>
+      <div class="ringtxt"><b id="ringNum">0/4</b><p id="ringMsg">오늘의 운동을 시작해볼까요?</p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="items">
+      <div class="item run" data-k="run">
+        <div class="ico">🏃‍♀️</div>
+        <div class="meta"><b>달리기</b><p>오늘 달린 거리</p></div>
+        <div class="km">
+          <button id="kmMinus" aria-label="0.5km 빼기">−</button>
+          <input id="kmInput" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0">
+          <button id="kmPlus" aria-label="0.5km 더하기">+</button>
+          <span>km</span>
+        </div>
+      </div>
+      <div class="item" data-k="stairs"><div class="ico">🪜</div><div class="meta"><b>계단 운동</b><p>10분 오르기</p></div><div class="check">✓</div></div>
+      <div class="item" data-k="dance"><div class="ico">💃</div><div class="meta"><b>댄스</b><p>신나게 한 곡 이상</p></div><div class="check">✓</div></div>
+      <div class="item" data-k="walk"><div class="ico">🚶‍♀️</div><div class="meta"><b>걷기</b><p>오늘 걸었나요?</p></div><div class="check">✓</div></div>
+    </div>
+  </section>
+
+  <!-- 월별 -->
+  <section class="card">
+    <div class="sectitle">
+      <button class="navbtn" id="prevMonth" aria-label="이전 달">‹</button>
+      <h2 id="monthLabel"></h2>
+      <button class="navbtn" id="nextMonth" aria-label="다음 달">›</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><p>🏃‍♀️ 이달 달린 거리</p><b id="sKm">0<small>km</small></b></div>
+      <div class="stat"><p>📅 운동한 날</p><b id="sDays">0<small>일</small></b></div>
+      <div class="stat"><p>🏆 4개 모두 완료</p><b id="sPerfect">0<small>일</small></b></div>
+      <div class="stat"><p>⚡ 하루 평균 거리</p><b id="sAvg">0<small>km</small></b></div>
+    </div>
+  </section>
+
+  <section class="card chartbox">
+    <h3>달리기 거리 <span id="kmMax"></span></h3>
+    <svg class="chart" id="kmChart" viewBox="0 0 640 220"></svg>
+  </section>
+
+  <section class="card chartbox">
+    <h3>날짜별 운동 완료 <span>하루 최대 4개</span></h3>
+    <svg class="chart" id="stackChart" viewBox="0 0 640 200"></svg>
+    <div class="legend">
+      <span><i style="background:var(--run)"></i>달리기</span><span><i style="background:var(--stairs)"></i>계단</span>
+      <span><i style="background:var(--dance)"></i>댄스</span><span><i style="background:var(--walk)"></i>걷기</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="sectitle"><h2>항목별 달성률</h2></div>
+    <div class="rates" id="rates"></div>
+  </section>
+
+  <section class="card">
+    <div class="sectitle"><h2>운동 캘린더</h2></div>
+    <div class="cal" id="cal"></div>
+    <p class="note">날짜를 누르면 그날 기록을 보고 고칠 수 있어요.</p>
+  </section>
+
+  <section class="card">
+    <div class="sectitle"><h2>기록 백업</h2></div>
+    <div class="tools">
+      <button id="exportBtn">⬇️ 백업 파일 저장</button>
+      <label>⬆️ 백업 불러오기<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+      <button class="danger" id="clearDay">이 날 기록 지우기</button>
+    </div>
+    <p class="note">기록은 이 브라우저에 자동 저장돼요. 새로고침하거나 껐다 켜도 남아 있지만, 브라우저의 방문 기록·사이트 데이터를 지우면 함께 지워지고 다른 기기·브라우저와는 공유되지 않아요. 가끔 백업 파일로 저장해 두세요.</p>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const KEY = 'workoutLog_v1';
+  const ACTS = [
+    {k:'run',    name:'달리기', color:'#ff6b35'},
+    {k:'stairs', name:'계단 10분', color:'#b6f23e'},
+    {k:'dance',  name:'댄스', color:'#ff4fa3'},
+    {k:'walk',   name:'걷기', color:'#3ed6f2'}
+  ];
+  const WD = ['일','월','화','수','목','금','토'];
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2,'0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+  const round1 = n => Math.round(n*10)/10;
+
+  let data = load();
+  let sel = today();
+  let viewY = sel.getFullYear(), viewM = sel.getMonth();
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ return {}; } }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch(e){ toast('저장하지 못했어요. 브라우저 설정을 확인해 주세요'); }
+  }
+  function rec(key){ const r = data[key] || {}; return {run:+r.run||0, stairs:!!r.stairs, dance:!!r.dance, walk:!!r.walk}; }
+  function cnt(r){ return (r.run>0?1:0)+(r.stairs?1:0)+(r.dance?1:0)+(r.walk?1:0); }
+  function setRec(key, r){
+    if (cnt(r) === 0) delete data[key]; else data[key] = r;
+    save(); renderAll();
+  }
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+  /* ---------- 하루 기록 ---------- */
+  function renderDay(){
+    const key = ymd(sel), r = rec(key), t = today();
+    const isToday = sel.getTime() === t.getTime();
+    $('dateMain').textContent = `${sel.getMonth()+1}월 ${sel.getDate()}일 (${WD[sel.getDay()]})`;
+    $('dateSub').textContent = isToday ? '오늘' : `${sel.getFullYear()}년`;
+    $('nextDay').disabled = sel >= t;
+
+    const inp = $('kmInput');
+    if (document.activeElement !== inp) inp.value = r.run > 0 ? r.run : '';
+    document.querySelector('.item.run').classList.toggle('on', r.run > 0);
+    ['stairs','dance','walk'].forEach(k => document.querySelector(`.item[data-k=${k}]`).classList.toggle('on', r[k]));
+
+    const c = cnt(r);
+    $('ringFg').style.strokeDashoffset = 263.9 * (1 - c/4);
+    $('ringNum').textContent = `${c}/4`;
+    $('ringMsg').textContent = ['오늘의 운동을 시작해볼까요?','좋은 출발이에요!','절반 완료! 계속 가요','거의 다 왔어요, 하나 남았어요','완벽한 하루! 🎉'][c];
+  }
+
+  /* ---------- 월별 ---------- */
+  function monthInfo(){
+    const n = new Date(viewY, viewM+1, 0).getDate();
+    const t = today();
+    let elapsed;
+    if (viewY === t.getFullYear() && viewM === t.getMonth()) elapsed = t.getDate();
+    else if (new Date(viewY, viewM, 1) > t) elapsed = 0;
+    else elapsed = n;
+    const days = [];
+    for (let d=1; d<=n; d++){ const key = `${viewY}-${pad(viewM+1)}-${pad(d)}`; days.push({d, key, r:rec(key)}); }
+    return {n, elapsed, days};
+  }
+
+  function renderMonth(){
+    const t = today();
+    $('monthLabel').textContent = `${viewY}년 ${viewM+1}월`;
+    $('nextMonth').disabled = viewY > t.getFullYear() || (viewY === t.getFullYear() && viewM >= t.getMonth());
+    const {n, elapsed, days} = monthInfo();
+
+    const totalKm = round1(days.reduce((s,x)=>s+x.r.run,0));
+    const runDays = days.filter(x=>x.r.run>0).length;
+    $('sKm').innerHTML = `${totalKm}<small>km</small>`;
+    $('sDays').innerHTML = `${days.filter(x=>cnt(x.r)>0).length}<small>일</small>`;
+    $('sPerfect').innerHTML = `${days.filter(x=>cnt(x.r)===4).length}<small>일</small>`;
+    $('sAvg').innerHTML = `${runDays ? round1(totalKm/runDays) : 0}<small>km</small>`;
+    $('sAvg').previousElementSibling.textContent = '⚡ 달린 날 평균 거리';
+
+    drawKm(days, n);
+    drawStack(days, n);
+
+    // 달성률
+    $('rates').innerHTML = ACTS.map(a=>{
+      const done = days.filter(x => a.k==='run' ? x.r.run>0 : x.r[a.k]).length;
+      const pct = elapsed ? Math.round(done/elapsed*100) : 0;
+      return `<div class="rate"><div class="top"><b>${a.name}</b><span>${done}/${elapsed}일 · ${pct}%</span></div>
+              <div class="bar"><div style="width:${pct}%;background:${a.color}"></div></div></div>`;
+    }).join('');
+
+    // 캘린더
+    const first = new Date(viewY, viewM, 1).getDay();
+    let html = WD.map(w=>`<div class="wd">${w}</div>`).join('');
+    for (let i=0;i<first;i++) html += '<div></div>';
+    const selKey = ymd(sel), tKey = ymd(t);
+    days.forEach(x=>{
+      const c = cnt(x.r), future = new Date(viewY, viewM, x.d) > t;
+      const dots = ACTS.map(a=>{
+        const on = a.k==='run' ? x.r.run>0 : x.r[a.k];
+        return `<i style="${on?`background:${a.color}`:''}"></i>`;
+      }).join('');
+      html += `<div class="day ${c?'lv'+c:''} ${future?'future':''} ${x.key===selKey?'sel':''} ${x.key===tKey?'today':''}" data-d="${x.d}">
+                 ${x.d}<span class="dots">${dots}</span></div>`;
+    });
+    $('cal').innerHTML = html;
+  }
+
+  const W = 640, PL = 34, PR = 8;
+  function xLabels(n, y){
+    let s = '';
+    for (let d=1; d<=n; d++){
+      if (d===1 || d%5===0){
+        const x = PL + (d-0.5)*((W-PL-PR)/n);
+        s += `<text x="${x}" y="${y}" fill="#5d6590" font-size="11" text-anchor="middle">${d}</text>`;
+      }
+    }
+    return s;
+  }
+
+  function drawKm(days, n){
+    const H = 220, PT = 14, PB = 24, ch = H-PT-PB, cw = (W-PL-PR)/n;
+    const maxKm = Math.max(...days.map(x=>x.r.run), 0);
+    const top = Math.max(5, Math.ceil(maxKm/5)*5);
+    $('kmMax').textContent = maxKm ? `최고 ${round1(maxKm)}km` : '아직 기록이 없어요';
+    let s = `<defs><linearGradient id="gk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4fa3"/><stop offset="1" stop-color="#ff6b35"/></linearGradient></defs>`;
+    [0, top/2, top].forEach(v=>{
+      const y = PT + ch - (v/top)*ch;
+      s += `<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#2b3157" stroke-dasharray="${v?'3 4':''}"/>
+            <text x="${PL-6}" y="${y+4}" fill="#5d6590" font-size="11" text-anchor="end">${round1(v)}</text>`;
+    });
+    const selKey = ymd(sel);
+    days.forEach((x,i)=>{
+      if (x.r.run <= 0) return;
+      const h = Math.max(3, (x.r.run/top)*ch), bx = PL + i*cw + cw*0.18, bw = cw*0.64, by = PT + ch - h;
+      s += `<rect x="${bx}" y="${by}" width="${bw}" height="${h}" rx="${Math.min(4,bw/2)}" fill="url(#gk)" opacity="${x.key===selKey?1:.85}"/>`;
+      if (x.key === selKey || n <= 31 && x.r.run === Math.max(...days.map(z=>z.r.run)))
+        s += `<text x="${bx+bw/2}" y="${by-4}" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle">${x.r.run}</text>`;
+    });
+    const runs = days.filter(x=>x.r.run>0);
+    if (runs.length > 1){
+      const avg = runs.reduce((a,x)=>a+x.r.run,0)/runs.length, y = PT + ch - (avg/top)*ch;
+      s += `<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#fff" stroke-opacity=".5" stroke-dasharray="6 4"/>
+            <text x="${W-PR}" y="${y-5}" fill="#fff" fill-opacity=".7" font-size="10.5" text-anchor="end">평균 ${round1(avg)}km</text>`;
+    }
+    s += xLabels(n, H-6);
+    $('kmChart').innerHTML = s;
+  }
+
+  function drawStack(days, n){
+    const H = 200, PT = 10, PB = 24, ch = H-PT-PB, cw = (W-PL-PR)/n, seg = ch/4;
+    let s = '';
+    for (let v=0; v<=4; v++){
+      const y = PT + ch - v*seg;
+      s += `<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#2b3157" stroke-dasharray="${v?'3 4':''}"/>
+            <text x="${PL-6}" y="${y+4}" fill="#5d6590" font-size="11" text-anchor="end">${v}</text>`;
+    }
+    days.forEach((x,i)=>{
+      const bx = PL + i*cw + cw*0.18, bw = cw*0.64;
+      let level = 0;
+      ACTS.forEach(a=>{
+        const on = a.k==='run' ? x.r.run>0 : x.r[a.k];
+        if (!on) return;
+        const y = PT + ch - (level+1)*seg + 1.5;
+        s += `<rect x="${bx}" y="${y}" width="${bw}" height="${seg-3}" rx="${Math.min(3,bw/2)}" fill="${a.color}"/>`;
+        level++;
+      });
+    });
+    s += xLabels(n, H-6);
+    $('stackChart').innerHTML = s;
+  }
+
+  // 연속 기록: 오늘(또는 오늘 기록이 아직 없으면 어제)부터 거슬러 운동한 날 수
+  function renderStreak(){
+    const d = today();
+    if (!cnt(rec(ymd(d)))) d.setDate(d.getDate()-1);
+    let s = 0;
+    while (cnt(rec(ymd(d))) > 0){ s++; d.setDate(d.getDate()-1); }
+    $('streak').textContent = `🔥 ${s}일 연속`;
+  }
+
+  function renderAll(){ renderDay(); renderMonth(); renderStreak(); }
+
+  /* ---------- 이벤트 ---------- */
+  function shiftDay(n){
+    const d = new Date(sel); d.setDate(d.getDate()+n);
+    if (d > today()) return;
+    sel = d; viewY = d.getFullYear(); viewM = d.getMonth(); renderAll();
+  }
+  $('prevDay').onclick = () => shiftDay(-1);
+  $('nextDay').onclick = () => shiftDay(1);
+  $('prevMonth').onclick = () => { viewM--; if (viewM<0){viewM=11;viewY--;} renderMonth(); };
+  $('nextMonth').onclick = () => { viewM++; if (viewM>11){viewM=0;viewY++;} renderMonth(); };
+
+  document.querySelectorAll('.item[data-k]:not(.run)').forEach(el=>{
+    el.onclick = () => {
+      const key = ymd(sel), r = rec(key), k = el.dataset.k;
+      r[k] = !r[k];
+      el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+      setRec(key, r);
+      if (cnt(r) === 4) toast('4개 모두 완료! 멋져요 🎉');
+    };
+  });
+
+  function setKm(v){
+    const key = ymd(sel), r = rec(key);
+    r.run = Math.max(0, Math.min(200, round1(isNaN(v)?0:v)));
+    setRec(key, r);
+  }
+  $('kmInput').addEventListener('input', e => setKm(parseFloat(e.target.value)));
+  $('kmInput').addEventListener('blur', () => renderDay());
+  $('kmPlus').onclick  = () => { setKm(rec(ymd(sel)).run + 0.5); $('kmInput').value = rec(ymd(sel)).run || ''; };
+  $('kmMinus').onclick = () => { setKm(rec(ymd(sel)).run - 0.5); $('kmInput').value = rec(ymd(sel)).run || ''; };
+
+  $('cal').addEventListener('click', e=>{
+    const el = e.target.closest('.day'); if (!el || el.classList.contains('future')) return;
+    sel = new Date(viewY, viewM, +el.dataset.d); renderAll();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  $('clearDay').onclick = () => {
+    const key = ymd(sel);
+    if (!data[key]) return toast('지울 기록이 없어요');
+    if (!confirm(`${sel.getMonth()+1}월 ${sel.getDate()}일 기록을 지울까요?`)) return;
+    delete data[key]; save(); renderAll(); toast('기록을 지웠어요');
+  };
+
+  $('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `운동기록_백업_${ymd(today())}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    toast('백업 파일을 저장했어요');
+  };
+  $('importFile').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const obj = JSON.parse(rd.result); let n = 0;
+        Object.keys(obj).forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(k) && obj[k]) { const r = obj[k]; data[k] = {run:+r.run||0, stairs:!!r.stairs, dance:!!r.dance, walk:!!r.walk}; n++; } });
+        save(); renderAll(); toast(`${n}일치 기록을 불러왔어요`);
+      } catch(err){ toast('백업 파일을 읽지 못했어요'); }
+      e.target.value = '';
+    };
+    rd.readAsText(f);
+  };
+
+  // 자정이 지나 앱을 다시 열었을 때 날짜 갱신
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState === 'visible' && sel > today()) { sel = today(); renderAll(); }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
